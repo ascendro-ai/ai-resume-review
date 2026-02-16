@@ -9,7 +9,47 @@ export const MODELS = {
   rework: "claude-opus-4-6",
 } as const;
 
-export async function generateScorecard(resumeText: string) {
+function extractJSON(text: string): string {
+  // Try to find JSON in the response even if there's surrounding text
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error("No JSON object found in response");
+  }
+  return jsonMatch[0];
+}
+
+function safeJSONParse<T>(text: string, context: string): T {
+  try {
+    return JSON.parse(extractJSON(text));
+  } catch {
+    throw new Error(
+      `Failed to parse Claude response as JSON (${context}). Raw response: ${text.substring(0, 200)}...`
+    );
+  }
+}
+
+function getTextContent(response: Anthropic.Message): string {
+  const content = response.content[0];
+  if (content.type !== "text") {
+    throw new Error("Unexpected response type from Claude");
+  }
+  return content.text;
+}
+
+interface ScorecardResult {
+  overallScore: number;
+  sectionScores: Record<string, { score: number; feedback: string }>;
+  strengths: Array<{ title: string; detail: string }>;
+  improvements: Array<{ title: string; detail: string }>;
+  formatFeedback: {
+    length: string;
+    layout: string;
+    readability: string;
+    overallFormat: string;
+  };
+}
+
+export async function generateScorecard(resumeText: string): Promise<ScorecardResult> {
   const response = await anthropic.messages.create({
     model: MODELS.scorecard,
     max_tokens: 4096,
@@ -64,12 +104,8 @@ Respond ONLY with the JSON object, no other text.`,
     ],
   });
 
-  const content = response.content[0];
-  if (content.type !== "text") {
-    throw new Error("Unexpected response type from Claude");
-  }
-
-  return JSON.parse(content.text);
+  const text = getTextContent(response);
+  return safeJSONParse(text, "scorecard");
 }
 
 export async function getReworkQuestion(
@@ -99,12 +135,7 @@ Be conversational, warm, and encouraging. Keep your question to 2-3 sentences ma
     ],
   });
 
-  const content = response.content[0];
-  if (content.type !== "text") {
-    throw new Error("Unexpected response type from Claude");
-  }
-
-  return content.text;
+  return getTextContent(response);
 }
 
 export async function rewriteBullet(
@@ -142,10 +173,9 @@ Respond ONLY with the JSON object.`,
     ],
   });
 
-  const content = response.content[0];
-  if (content.type !== "text") {
-    throw new Error("Unexpected response type from Claude");
-  }
-
-  return JSON.parse(content.text);
+  const text = getTextContent(response);
+  return safeJSONParse<{ revisedBullet: string; explanation: string }>(
+    text,
+    "bullet rewrite"
+  );
 }

@@ -2,12 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getReworkQuestion, rewriteBullet } from "@/lib/claude";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 // POST: Get question for a bullet or submit user explanation
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Rate limit: 10 bullet interactions per minute per user
+  const { allowed } = checkRateLimit(`rework:${session.user.id}`, 10);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait a moment." },
+      { status: 429 }
+    );
   }
 
   const { bulletId, action, userExplanation } = await req.json();

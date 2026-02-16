@@ -3,8 +3,9 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Download, ArrowLeft, CheckCircle } from "lucide-react";
+import { Loader2, Download, ArrowLeft, CheckCircle, Copy } from "lucide-react";
 import Link from "next/link";
+import { generateResumePDF } from "@/lib/generate-pdf";
 
 interface ReworkResult {
   id: string;
@@ -97,24 +98,39 @@ function ReworkResultContent() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => {
-            const text = Object.entries(sections)
-              .map(
-                ([section, bullets]) =>
-                  `${section}\n${bullets
-                    .map((b) => `  - ${b.revisedText || b.originalText}`)
-                    .join("\n")}`
-              )
-              .join("\n\n");
-            navigator.clipboard.writeText(text);
-            alert("Copied to clipboard!");
-          }}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          <Download className="h-4 w-4" />
-          Copy All
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => {
+              const text = Object.entries(sections)
+                .map(
+                  ([section, bullets]) =>
+                    `${section}\n${bullets
+                      .map((b) => `  - ${b.revisedText || b.originalText}`)
+                      .join("\n")}`
+                )
+                .join("\n\n");
+              navigator.clipboard.writeText(text);
+              alert("Copied to clipboard!");
+            }}
+            className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <Copy className="h-4 w-4" />
+            Copy Text
+          </button>
+          <button
+            onClick={() => {
+              const pdf = generateResumePDF(
+                result.bullets,
+                session?.user?.name || undefined
+              );
+              pdf.save("reworked-resume.pdf");
+            }}
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            <Download className="h-4 w-4" />
+            Download PDF
+          </button>
+        </div>
       </div>
 
       {/* Reworked bullets by section */}

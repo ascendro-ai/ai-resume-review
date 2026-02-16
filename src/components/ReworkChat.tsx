@@ -49,7 +49,6 @@ export default function ReworkChat({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [revisedBullet, setRevisedBullet] = useState<string | null>(null);
-  const [explanation, setExplanation] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState("");
   const [completed, setCompleted] = useState(
@@ -75,7 +74,7 @@ export default function ReworkChat({
   async function askAboutBullet() {
     setLoading(true);
     setRevisedBullet(null);
-    setExplanation(null);
+    // reset state
 
     try {
       const res = await fetch("/api/rework/bullet", {
@@ -124,7 +123,7 @@ export default function ReworkChat({
       });
       const data = await res.json();
       setRevisedBullet(data.revisedBullet);
-      setExplanation(data.explanation);
+
       setEditText(data.revisedBullet);
       setMessages((prev) => [
         ...prev,
@@ -188,7 +187,7 @@ export default function ReworkChat({
         if (nextIndex !== -1) {
           setCurrentIndex(nextIndex);
           setRevisedBullet(null);
-          setExplanation(null);
+          // reset state
           setEditing(false);
         }
       }

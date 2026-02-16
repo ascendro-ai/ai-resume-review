@@ -6,12 +6,13 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import FileUpload from "@/components/FileUpload";
 import ScorecardDisplay from "@/components/ScorecardDisplay";
+import type { ScorecardData } from "@/types/scorecard";
 
 export default function ScorecardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [resumeId, setResumeId] = useState<string | null>(null);
-  const [scorecard, setScorecard] = useState<unknown>(null);
+  const [scorecard, setScorecard] = useState<ScorecardData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,7 +60,7 @@ export default function ScorecardPage() {
         <h1 className="text-3xl font-bold text-gray-900 text-center mb-8">
           Your Resume Scorecard
         </h1>
-        <ScorecardDisplay data={scorecard as never} />
+        <ScorecardDisplay data={scorecard} />
       </div>
     );
   }

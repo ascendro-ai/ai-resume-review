@@ -6,22 +6,7 @@ import {
   TrendingUp,
   FileText,
 } from "lucide-react";
-
-interface ScorecardData {
-  overallScore: number;
-  sectionScores: Record<
-    string,
-    { score: number; feedback: string }
-  >;
-  strengths: Array<{ title: string; detail: string }>;
-  improvements: Array<{ title: string; detail: string }>;
-  formatFeedback: {
-    length: string;
-    layout: string;
-    readability: string;
-    overallFormat: string;
-  };
-}
+import type { ScorecardData } from "@/types/scorecard";
 
 function ScoreRing({ score }: { score: number }) {
   const radius = 54;
