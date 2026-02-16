@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
+import { currentUser } from "@clerk/nextjs/server";
 import { stripe, PRICES } from "@/lib/stripe";
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id || !session?.user?.email) {
+  let userId: string;
+  try {
+    userId = await getAuthUserId();
+  } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const clerkUser = await currentUser();
+  const email = clerkUser?.emailAddresses[0]?.emailAddress;
 
   const { plan } = await req.json();
 
@@ -22,12 +28,12 @@ export async function POST(req: NextRequest) {
       },
     ],
     metadata: {
-      userId: session.user.id,
+      userId,
       credits: String(price.credits),
     },
-    customer_email: session.user.email,
-    success_url: `${process.env.NEXTAUTH_URL}/dashboard?payment=success`,
-    cancel_url: `${process.env.NEXTAUTH_URL}/pricing?payment=cancelled`,
+    ...(email ? { customer_email: email } : {}),
+    success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard?payment=success`,
+    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/pricing?payment=cancelled`,
   });
 
   return NextResponse.json({ url: checkoutSession.url });

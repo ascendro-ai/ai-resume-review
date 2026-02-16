@@ -1,33 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import FileUpload from "@/components/FileUpload";
 import ScorecardDisplay from "@/components/ScorecardDisplay";
 import type { ScorecardData } from "@/types/scorecard";
 
 export default function ScorecardPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
   const [resumeId, setResumeId] = useState<string | null>(null);
   const [scorecard, setScorecard] = useState<ScorecardData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  if (status === "loading") {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-      </div>
-    );
-  }
-
-  if (!session) {
-    router.push("/login");
-    return null;
-  }
 
   async function generateScorecard(id: string) {
     setLoading(true);

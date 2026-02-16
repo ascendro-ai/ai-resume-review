@@ -1,8 +1,8 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { useSearchParams } from "next/navigation";
 import { Loader2, Download, ArrowLeft, CheckCircle, Copy } from "lucide-react";
 import Link from "next/link";
 import { generateResumePDF } from "@/lib/generate-pdf";
@@ -20,19 +20,18 @@ interface ReworkResult {
 }
 
 function ReworkResultContent() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { user } = useUser();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("sessionId");
   const [result, setResult] = useState<ReworkResult | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (status === "authenticated" && sessionId) {
+    if (sessionId) {
       fetchResult();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, sessionId]);
+  }, [sessionId]);
 
   async function fetchResult() {
     try {
@@ -46,17 +45,12 @@ function ReworkResultContent() {
     }
   }
 
-  if (status === "loading" || loading) {
+  if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );
-  }
-
-  if (!session) {
-    router.push("/login");
-    return null;
   }
 
   if (!result) {
@@ -121,7 +115,7 @@ function ReworkResultContent() {
             onClick={() => {
               const pdf = generateResumePDF(
                 result.bullets,
-                session?.user?.name || undefined
+                user?.fullName || undefined
               );
               pdf.save("reworked-resume.pdf");
             }}

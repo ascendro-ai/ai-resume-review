@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { ensureUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateScorecard } from "@/lib/claude";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  let userId: string;
+  try {
+    userId = await ensureUser();
+  } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // Rate limit: 5 scorecard requests per minute per user
-  const { allowed } = checkRateLimit(`scorecard:${session.user.id}`, 5);
+  const { allowed } = checkRateLimit(`scorecard:${userId}`, 5);
   if (!allowed) {
     return NextResponse.json(
       { error: "Too many requests. Please wait a moment." },
@@ -21,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   // Check scorecard limit
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: userId },
   });
 
   if (!user) {
@@ -38,7 +40,7 @@ export async function POST(req: NextRequest) {
   const { resumeId } = await req.json();
 
   const resume = await prisma.resume.findUnique({
-    where: { id: resumeId, userId: session.user.id },
+    where: { id: resumeId, userId },
   });
 
   if (!resume) {
@@ -60,7 +62,7 @@ export async function POST(req: NextRequest) {
 
   // Increment scorecard count
   await prisma.user.update({
-    where: { id: session.user.id },
+    where: { id: userId },
     data: { scorecardCount: { increment: 1 } },
   });
 

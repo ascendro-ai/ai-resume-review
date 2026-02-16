@@ -1,20 +1,22 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { ensureUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
+  let userId: string;
+  try {
+    userId = await ensureUser();
+  } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: userId },
     select: { scorecardCount: true, reworkCredits: true },
   });
 
   const scorecards = await prisma.scorecard.findMany({
-    where: { resume: { userId: session.user.id } },
+    where: { resume: { userId } },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -25,7 +27,7 @@ export async function GET() {
   });
 
   const reworkSessions = await prisma.reworkSession.findMany({
-    where: { resume: { userId: session.user.id } },
+    where: { resume: { userId } },
     orderBy: { updatedAt: "desc" },
     select: {
       id: true,

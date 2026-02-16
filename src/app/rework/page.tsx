@@ -1,8 +1,7 @@
 "use client";
 
 import { Suspense, useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Loader2, Lock } from "lucide-react";
 import FileUpload from "@/components/FileUpload";
 import ReworkChat from "@/components/ReworkChat";
@@ -25,8 +24,6 @@ interface ReworkSession {
 }
 
 function ReworkPageContent() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [reworkSession, setReworkSession] = useState<ReworkSession | null>(null);
   const [loading, setLoading] = useState(false);
@@ -35,24 +32,10 @@ function ReworkPageContent() {
   const resumeSessionId = searchParams.get("sessionId");
 
   useEffect(() => {
-    if (resumeSessionId && session) {
+    if (resumeSessionId) {
       loadExistingSession(resumeSessionId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resumeSessionId, session]);
-
-  if (status === "loading") {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-      </div>
-    );
-  }
-
-  if (!session) {
-    router.push("/login");
-    return null;
-  }
+  }, [resumeSessionId]);
 
   async function loadExistingSession(sessionId: string) {
     setLoading(true);

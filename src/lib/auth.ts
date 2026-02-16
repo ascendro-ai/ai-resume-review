@@ -1,25 +1,34 @@
-import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
-import { PrismaAdapter } from "@auth/prisma-adapter";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "./prisma";
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
-  pages: {
-    signIn: "/login",
-  },
-  callbacks: {
-    session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
-      }
-      return session;
-    },
-  },
-});
+export async function getAuthUserId(): Promise<string> {
+  const { userId } = await auth();
+  if (!userId) {
+    throw new Error("Unauthorized");
+  }
+  return userId;
+}
+
+export async function ensureUser(): Promise<string> {
+  const { userId } = await auth();
+  if (!userId) {
+    throw new Error("Unauthorized");
+  }
+
+  // Upsert user in our DB on first API call
+  const existing = await prisma.user.findUnique({ where: { id: userId } });
+  if (!existing) {
+    const clerkUser = await currentUser();
+    await prisma.user.create({
+      data: {
+        id: userId,
+        email: clerkUser?.emailAddresses[0]?.emailAddress || null,
+        name: clerkUser?.firstName
+          ? `${clerkUser.firstName} ${clerkUser.lastName || ""}`.trim()
+          : null,
+      },
+    });
+  }
+
+  return userId;
+}

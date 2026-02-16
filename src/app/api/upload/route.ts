@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { ensureUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { extractTextFromPdf, parseResumeIntoBullets } from "@/lib/pdf";
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  let userId: string;
+  try {
+    userId = await ensureUser();
+  } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -35,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   const resume = await prisma.resume.create({
     data: {
-      userId: session.user.id,
+      userId,
       extractedText,
       fileName: file.name,
     },

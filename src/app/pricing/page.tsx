@@ -1,17 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { CheckCircle, Loader2 } from "lucide-react";
 
 export default function PricingPage() {
-  const { data: session } = useSession();
+  const { isSignedIn } = useUser();
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
 
   async function handleCheckout(plan: string) {
-    if (!session) {
+    if (!isSignedIn) {
       router.push("/login");
       return;
     }

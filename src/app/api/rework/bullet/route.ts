@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getReworkQuestion, rewriteBullet } from "@/lib/claude";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 // POST: Get question for a bullet or submit user explanation
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  let userId: string;
+  try {
+    userId = await getAuthUserId();
+  } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // Rate limit: 10 bullet interactions per minute per user
-  const { allowed } = checkRateLimit(`rework:${session.user.id}`, 10);
+  const { allowed } = checkRateLimit(`rework:${userId}`, 10);
   if (!allowed) {
     return NextResponse.json(
       { error: "Too many requests. Please wait a moment." },
@@ -33,7 +35,7 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  if (!bullet || bullet.reworkSession.resume.userId !== session.user.id) {
+  if (!bullet || bullet.reworkSession.resume.userId !== userId) {
     return NextResponse.json({ error: "Bullet not found" }, { status: 404 });
   }
 

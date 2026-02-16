@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { ensureUser, getAuthUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseResumeIntoBullets } from "@/lib/pdf";
 
 // POST: Start a new rework session
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  let userId: string;
+  try {
+    userId = await ensureUser();
+  } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: userId },
   });
 
   if (!user || user.reworkCredits < 1) {
@@ -24,7 +26,7 @@ export async function POST(req: NextRequest) {
   const { resumeId } = await req.json();
 
   const resume = await prisma.resume.findUnique({
-    where: { id: resumeId, userId: session.user.id },
+    where: { id: resumeId, userId },
   });
 
   if (!resume) {
@@ -42,7 +44,7 @@ export async function POST(req: NextRequest) {
 
   // Deduct credit
   await prisma.user.update({
-    where: { id: session.user.id },
+    where: { id: userId },
     data: { reworkCredits: { decrement: 1 } },
   });
 
@@ -69,8 +71,10 @@ export async function POST(req: NextRequest) {
 
 // GET: Retrieve an existing rework session
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  let userId: string;
+  try {
+    userId = await getAuthUserId();
+  } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -87,7 +91,7 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  if (!reworkSession || reworkSession.resume.userId !== session.user.id) {
+  if (!reworkSession || reworkSession.resume.userId !== userId) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
   }
 

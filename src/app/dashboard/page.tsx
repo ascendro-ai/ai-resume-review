@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Loader2,
@@ -36,16 +34,12 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (status === "authenticated") {
-      fetchDashboard();
-    }
-  }, [status]);
+    fetchDashboard();
+  }, []);
 
   async function fetchDashboard() {
     try {
@@ -59,17 +53,12 @@ export default function DashboardPage() {
     }
   }
 
-  if (status === "loading" || loading) {
+  if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );
-  }
-
-  if (!session) {
-    router.push("/login");
-    return null;
   }
 
   return (
